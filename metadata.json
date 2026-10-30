@@ -1,0 +1,7 @@
+{
+  "name": "Relógio de Evento",
+  "description": "Relógio de evento e cronômetro com dias, horas, minutos, segundos e milissegundos.",
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
