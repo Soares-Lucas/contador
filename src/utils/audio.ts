@@ -84,3 +84,33 @@ export function playAlarmSound() {
     // Ignore
   }
 }
+
+export function playLunchFinishChime() {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    // Warm restaurant bell chord progression: C5 -> E5 -> G5 -> C6
+    const notes = [
+      { freq: 523.25, delay: 0, duration: 0.28 },
+      { freq: 659.25, delay: 0.14, duration: 0.28 },
+      { freq: 783.99, delay: 0.28, duration: 0.35 },
+      { freq: 1046.5, delay: 0.42, duration: 0.55 },
+    ];
+    notes.forEach(({ freq, delay, duration }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + delay);
+      gain.gain.setValueAtTime(0.001, now + delay);
+      gain.gain.linearRampToValueAtTime(0.11, now + delay + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + delay + duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + delay);
+      osc.stop(now + delay + duration);
+    });
+  } catch {
+    // Ignore audio context restrictions
+  }
+}

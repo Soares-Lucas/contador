@@ -1,3 +1,6 @@
+export type AppTheme = 'lunch' | 'orbita';
+export type LunchStatus = 'config' | 'running' | 'paused' | 'finished';
+
 export type TimerMode = 'stopwatch' | 'event' | 'timer';
 export type TimerStatus = 'idle' | 'running' | 'paused';
 

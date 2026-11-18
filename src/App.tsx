@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
+  AppTheme,
   TimerMode,
   TimerStatus,
   Lap,
@@ -12,6 +13,7 @@ import { ControlBar } from './components/ControlBar';
 import { LapsTable } from './components/LapsTable';
 import { EventCountdownSetup } from './components/EventCountdownSetup';
 import { HeuristicsModal } from './components/HeuristicsModal';
+import { LunchExperience } from './components/LunchExperience';
 import { playTickSound, playLapSound, playAlarmSound } from './utils/audio';
 import {
   Compass,
@@ -23,9 +25,32 @@ import {
   Calendar,
   Timer,
   Clock,
+  Sun,
 } from 'lucide-react';
 
+function getInitialAppTheme(): AppTheme {
+  if (typeof window === 'undefined') return 'lunch';
+  const params = new URLSearchParams(window.location.search);
+  const urlTheme = params.get('theme');
+  if (urlTheme === 'orbita' || urlTheme === 'dark') return 'orbita';
+  if (urlTheme === 'lunch' || urlTheme === 'light') return 'lunch';
+  const stored = window.localStorage.getItem('orbita_app_theme');
+  return stored === 'orbita' ? 'orbita' : 'lunch';
+}
+
 export default function App() {
+  // Dual-Theme State ('lunch' = Light Pizzeria Theme, 'orbita' = Dark Space Theme)
+  const [appTheme, setAppTheme] = useState<AppTheme>(getInitialAppTheme);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', appTheme === 'orbita');
+    try {
+      window.localStorage.setItem('orbita_app_theme', appTheme);
+    } catch {
+      // Ignore storage failures
+    }
+  }, [appTheme]);
+
   // Modes & State
   const [mode, setMode] = useState<TimerMode>('stopwatch');
   const [status, setStatus] = useState<TimerStatus>('idle');
@@ -65,15 +90,16 @@ export default function App() {
     }, 3200);
   }, []);
 
-  // Update browser document title with live timer status (Heuristic #1)
+  // Update browser document title with live timer status when Orbita theme is active (Heuristic #1)
   useEffect(() => {
+    if (appTheme !== 'orbita') return;
     const s = Math.floor((displayTotalMs / 1000) % 60);
     const m = Math.floor((displayTotalMs / (1000 * 60)) % 60);
     const h = Math.floor((displayTotalMs / (1000 * 60 * 60)) % 24);
     const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     const statusPrefix = status === 'running' ? '▶ ' : status === 'paused' ? '❚❚ ' : '';
     document.title = `${statusPrefix}${timeStr} · ÓRBITA`;
-  }, [elapsedMs, timerRemainingMs, mode, status]);
+  }, [appTheme, elapsedMs, timerRemainingMs, mode, status]);
 
   // Main Timer Loop
   useEffect(() => {
@@ -210,6 +236,8 @@ export default function App() {
 
   // Keyboard Shortcuts Listener (Heuristic #7: Flexibility and efficiency of use)
   useEffect(() => {
+    if (appTheme !== 'orbita') return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't trigger if typing in an input
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName)) {
@@ -243,7 +271,11 @@ export default function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [status, mode, soundEnabled, laps, elapsedMs]);
+  }, [appTheme, status, mode, soundEnabled, laps, elapsedMs]);
+
+  if (appTheme === 'lunch') {
+    return <LunchExperience theme={appTheme} onSelectTheme={setAppTheme} />;
+  }
 
   return (
     <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col radial-stars selection:bg-cyan-500/30 selection:text-cyan-200">
@@ -310,9 +342,21 @@ export default function App() {
             </button>
           </nav>
 
-          {/* Zone 3: Primary Action & Info */}
-          <div className="flex items-center gap-2.5 shrink-0">
+          {/* Zone 3: Primary Action & Theme Switch */}
+          <div className="flex items-center gap-2 shrink-0">
             <button
+              type="button"
+              onClick={() => setAppTheme('lunch')}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-200 hover:text-amber-100 bg-amber-950/50 hover:bg-amber-900/60 rounded-lg border border-amber-700/50 transition-colors cursor-pointer whitespace-nowrap"
+              aria-label="Alternar para o tema claro Hora do almoço"
+              title="Alternar para o tema claro Hora do almoço"
+            >
+              <Sun className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Hora do almoço</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setShowHeuristicsModal(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 rounded-lg border border-slate-800 transition-colors cursor-pointer whitespace-nowrap"
               title="Ver Heurísticas de Usabilidade (Nielsen)"
@@ -322,8 +366,10 @@ export default function App() {
             </button>
 
             <button
+              type="button"
               onClick={toggleFullscreen}
               className="p-2 text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 rounded-lg border border-slate-800 transition-colors cursor-pointer"
+              aria-label={isFullscreen ? 'Sair da Tela Cheia' : 'Modo Tela Cheia'}
               title={isFullscreen ? 'Sair da Tela Cheia (Atalho: F)' : 'Modo Tela Cheia (Atalho: F)'}
             >
               {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
